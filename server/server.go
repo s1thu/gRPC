@@ -29,6 +29,7 @@ func (s *TodoServer) CreateTodo(ctx context.Context, in *pb.NewTodo) (*pb.Todo, 
 		Done:        false,
 		Id:          uuid.New().String(),
 	}
+	s.todos[todo.GetId()] = todo
 	return todo, nil
 }
 
@@ -58,7 +59,13 @@ func (s *TodoServer) ModifyTodo(ctx context.Context, in *pb.Todo) (*pb.Todo, err
 	return existingTodo, nil
 }
 
-func (s *TodoServer) ListTodo(empty *pb.Empty, stream pb.TodoService_ListTodosServer) error {
+func NewTodoServer() *TodoServer {
+	return &TodoServer{
+		todos: make(map[string]*pb.Todo),
+	}
+}
+
+func (s *TodoServer) ListTodos(empty *pb.Empty, stream pb.TodoService_ListTodosServer) error {
 	log.Printf("Listing all todos")
 	for _, todo := range s.todos {
 		if err := stream.Send(todo); err != nil {
@@ -76,7 +83,7 @@ func main() {
 	}
 
 	s := grpc.NewServer()
-	pb.RegisterTodoServiceServer(s, &TodoServer{})
+	pb.RegisterTodoServiceServer(s, NewTodoServer())
 
 	log.Printf("server is listening at %v", lis.Addr())
 
